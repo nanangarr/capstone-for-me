@@ -11,16 +11,16 @@ const Patient = db.define('pasien', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    jenis_kelamin: {
-        type: DataTypes.ENUM('Laki-laki', 'Perempuan'),
-        allowNull: false
-    },
-    alamat: {
-        type: DataTypes.TEXT,
+    tempat_lahir: {
+        type: DataTypes.STRING,
         allowNull: false
     },
     tanggal_lahir: {
         type: DataTypes.DATEONLY,
+        allowNull: false
+    },
+    no_hp: {
+        type: DataTypes.STRING,
         allowNull: false
     }
 }, {

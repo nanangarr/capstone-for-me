@@ -12,7 +12,13 @@ const getPendingUsers = async (req, res) => {
     try {
         const users = await Users.findAll({
             where: { password: null },
-            attributes: ['NIP', 'email', 'nama_lengkap', 'jabatan', 'instansi']
+            attributes: [
+                'NIP',
+                'email',
+                'nama_lengkap',
+                'jabatan',
+                'instansi'
+            ]
         });
 
         res.json(users);
@@ -37,7 +43,7 @@ const getAllUsers = async (req, res) => {
                 'instansi',
                 'username',
                 'role',
-                'password', 
+                'password',
                 [
                     Users.sequelize.literal('CASE WHEN password IS NULL THEN false ELSE true END'),
                     'isApproved'
@@ -62,7 +68,14 @@ const getUserbyNIP = async (req, res) => {
 
         // Cari user berdasarkan NIP
         const user = await Users.findByPk(nip, {
-            attributes: ['NIP', 'email', 'nama_lengkap', 'jabatan', 'instansi', 'username', 'role',
+            attributes: [
+                'NIP',
+                'email',
+                'nama_lengkap',
+                'jabatan',
+                'instansi',
+                'username',
+                'role',
                 [
                     Users.sequelize.literal('CASE WHEN password IS NULL THEN false ELSE true END'),
                     'isApproved'
@@ -95,8 +108,7 @@ const updateUserbyNIP = async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'User tidak ditemukan' });
         }
-
-        // Buat objek untuk update
+        
         const updateData = {};
 
         // Tambahkan field yang akan diupdate jika ada di request

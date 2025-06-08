@@ -7,10 +7,9 @@ const Examination = db.define('pemeriksaan', {
         primaryKey: true,
         autoIncrement: true
     },
-    tanggal_periksa: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW
+    jenis_kelamin: {
+        type: DataTypes.ENUM('Laki-laki', 'Perempuan'),
+        allowNull: false
     },
     umur: {
         type: DataTypes.INTEGER,
@@ -24,11 +23,15 @@ const Examination = db.define('pemeriksaan', {
         type: DataTypes.FLOAT,
         allowNull: false
     },
+    tinggi_badan: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
     penyakit_jantung: {
         type: DataTypes.BOOLEAN,
         allowNull: false
     },
-    menikah: {
+    status_nikah: {
         type: DataTypes.ENUM('Ya', 'Tidak'),
         allowNull: false
     },
@@ -56,6 +59,8 @@ const Examination = db.define('pemeriksaan', {
         type: DataTypes.STRING,
         allowNull: false
     },
+
+    // untuk menyimpan hasil pemeriksaan
     kategori: {
         type: DataTypes.STRING,
         allowNull: true

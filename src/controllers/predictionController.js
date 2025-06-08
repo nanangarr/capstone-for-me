@@ -1,4 +1,6 @@
-const { Patient, Examination } = require('../models');
+const { Examination, Patient } = require('../models');
+const ModelLoader = require('../services/modelLoader');
+const path = require('path');
 const fs = require('fs');
 
 /**
@@ -6,113 +8,110 @@ const fs = require('fs');
  * @route /patients/add
  * @desc Tambahkan data pasien dan pemeriksaan baru
  */
-const addPatientAndExamination = async (req, res) => {
-    try {
-        // Extract data pasien dari request body
-        const {
-            nama,
-            jenis_kelamin,
-            alamat,
-            tanggal_lahir,
-            tanggal_periksa,
-            umur,
-            hipertensi,
-            berat_badan,
-            penyakit_jantung,
-            menikah,
-            pekerjaan,
-            tempat_tinggal,
-            glukosa,
-            merokok,
-            stroke,
-            kategori,
-            deskripsi,
-            solusi
-        } = req.body;
+class PredictionController {
+    static async predictStroke(req, res) {
+        try {
+            //Simpan data pasien baru
+            const patient = await Patient.create({
+                nama: req.body.nama,
+                tempat_lahir: req.body.tempat_lahir,
+                tanggal_lahir: req.body.tanggal_lahir,
+                no_hp: req.body.no_hp,
+                NIP: req.user.NIP 
+            });
 
-        // Dapatkan path file jika ada upload
-        const gambar_MRI = req.file ? req.file.path.replace(/\\/g, '/') : null;
+            //Simpan data pemeriksaan baru
+            const examination = await Examination.create({
+                pasien_id: patient.id,
+                jenis_kelamin: req.body.jenis_kelamin,
+                berat_badan: req.body.berat_badan,
+                tinggi_badan: req.body.tinggi_badan,
+                umur: req.body.umur,
+                hipertensi: req.body.hipertensi === 'true' || req.body.hipertensi === true,
+                penyakit_jantung: req.body.penyakit_jantung === 'true' || req.body.penyakit_jantung === true,
+                status_nikah: req.body.status_nikah,
+                pekerjaan: req.body.pekerjaan,
+                tempat_tinggal: req.body.tempat_tinggal,
+                glukosa: req.body.glukosa,
+                merokok: req.body.merokok,
+                stroke: req.body.stroke === 'true' || req.body.stroke === true,
+                gambar_MRI: req.file.filename
+            });
 
-        // Validasi field yang dibutuhkan
-        if (!nama || !jenis_kelamin || !alamat || !tanggal_lahir || !umur || !hipertensi || !penyakit_jantung || !menikah || !pekerjaan || !tempat_tinggal || !glukosa || !merokok || !stroke || !berat_badan) {
-            // Hapus file yang terupload jika validasi gagal
-            if (gambar_MRI && fs.existsSync(gambar_MRI)) {
-                fs.unlinkSync(gambar_MRI);
-            }
+            //Siapkan data input untuk prediksi
+            const inputData = {
+                mriPath: path.join(__dirname, '../../uploads/', req.file.filename),
+                jenis_kelamin: req.body.jenis_kelamin,
+                umur: req.body.umur,
+                hipertensi: req.body.hipertensi === 'true' || req.body.hipertensi === true,
+                penyakit_jantung: req.body.penyakit_jantung === 'true' || req.body.penyakit_jantung === true,
+                status_nikah: req.body.status_nikah,
+                pekerjaan: req.body.pekerjaan,
+                tempat_tinggal: req.body.tempat_tinggal,
+                glukosa: req.body.glukosa,
+                berat_badan: req.body.berat_badan,
+                tinggi_badan: req.body.tinggi_badan,
+                merokok: req.body.merokok
+            };
 
-            return res.status(400).json({
-                error: 'Semua field wajib diisi (nama, jenis kelamin, alamat, tanggal lahir, umur, hipertensi, penyakit jantung, menikah, pekerjaan, tempat tinggal, glukosa, merokok, stroke, berat badan)'
+            //Lakukan prediksi menggunakan model
+            const predictions = await ModelLoader.predict(inputData);
+            const result = await predictions.data();
+
+            //Tentukan kategori stroke berdasarkan hasil prediksi
+            const strokeCategories = ['Ischemic', 'Normal', 'Haemorrhagic'];
+            const predictedCategoryIndex = result.indexOf(Math.max(...result));
+            const predictedCategory = strokeCategories[predictedCategoryIndex];
+
+            // Dapatkan informasi deskripsi dan solusi berdasarkan kategori yang diprediksi
+            const { description, solution } = PredictionController.getStrokeInfo(predictedCategory);
+
+            // Update pemeriksaan dengan kategori, deskripsi, dan solusi
+            await examination.update({
+                kategori: predictedCategory,
+                deskripsi: description,
+                solusi: solution
+            });
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    patient,
+                    examination,
+                    prediction: {
+                        category: predictedCategory,
+                        confidence: (Math.max(...result) * 100).toFixed(2) + '%'
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Prediction error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
         }
-
-        //
-
-        // Dapatkan NIP dari token user yang terautentikasi
-        const NIP = req.user.NIP;
-
-        // Buat record pasien baru
-        const patient = await Patient.create({
-            nama,
-            jenis_kelamin,
-            alamat,
-            tanggal_lahir,
-            NIP 
-        });
-
-        // Buat record pemeriksaan
-        const examination = await Examination.create({
-            pasien_id: patient.id,
-            tanggal_periksa: tanggal_periksa || new Date(),
-            umur: parseInt(umur),
-            hipertensi: hipertensi === 'true' || hipertensi === '1' || hipertensi === true || hipertensi === 1,
-            berat_badan: parseFloat(berat_badan),
-            penyakit_jantung: penyakit_jantung === 'true' || penyakit_jantung === '1' || penyakit_jantung === true || penyakit_jantung === 1,
-            menikah: (menikah === 'true' || menikah === '1' || menikah === true || menikah === 1) ? 'Ya' : 'Tidak',
-            pekerjaan,
-            tempat_tinggal,
-            glukosa: parseFloat(glukosa),
-            merokok,
-            stroke,
-            gambar_MRI,
-            kategori: kategori || null,
-            deskripsi: deskripsi || null,
-            solusi: solusi || null
-        });
-
-        // Kembalikan hasil
-        res.status(201).json({
-            message: 'Data pasien dan pemeriksaan berhasil disimpan',
-            patient: {
-                id: patient.id,
-                nama: patient.nama,
-                jenis_kelamin: patient.jenis_kelamin,
-                tanggal_lahir: patient.tanggal_lahir,
-                alamat: patient.alamat
-            },
-            examination: {
-                id: examination.id,
-                tanggal_periksa: examination.tanggal_periksa,
-                umur: examination.umur,
-                hipertensi: examination.hipertensi,
-                berat_badan: examination.berat_badan,
-                penyakit_jantung: examination.penyakit_jantung,
-                menikah: examination.menikah,
-                pekerjaan: examination.pekerjaan,
-                tempat_tinggal: examination.tempat_tinggal,
-                glukosa: examination.glukosa,
-                merokok: examination.merokok,
-                stroke: examination.stroke,
-                gambar_MRI: examination.gambar_MRI,
-                kategori: examination.kategori,
-                deskripsi: examination.deskripsi,
-                solusi: examination.solusi
-            }
-        });
-    } catch (error) {
-        console.error('Error in addPatientAndExamination:', error);
-        res.status(500).json({ error: error.message });
     }
-};
+
+    static getStrokeInfo(category) {
+        const info = {
+            Ischemic: {
+                description: 'Stroke iskemik terjadi ketika pembuluh darah yang memasok darah ke otak tersumbat oleh gumpalan darah. Ini adalah jenis stroke yang paling umum, menyumbang sekitar 87% dari semua kasus stroke.',
+                solution: '1. Pemberian obat trombolitik dalam 4,5 jam pertama\n2. Terapi antiplatelet atau antikoagulan\n3. Rehabilitasi pasca stroke\n4. Pengendalian faktor risiko seperti hipertensi dan diabetes'
+            },
+            Haemorrhagic: {
+                description: 'Stroke hemoragik terjadi ketika pembuluh darah di otak pecah dan menyebabkan perdarahan di dalam atau di sekitar otak. Jenis stroke ini lebih jarang tetapi lebih berpotensi fatal.',
+                solution: '1. Stabilisasi tekanan darah\n2. Pembedahan untuk menghentikan perdarahan\n3. Pengelolaan tekanan intrakranial\n4. Rehabilitasi intensif\n5. Pemantauan neurologis ketat'
+            },
+            Normal: {
+                description: 'Tidak terdeteksi tanda-tanda stroke pada gambar MRI. Hasil pemeriksaan menunjukkan kondisi otak dalam batas normal.',
+                solution: '1. Pertahankan pola makan sehat\n2. Olahraga teratur\n3. Hindari merokok dan alkohol berlebihan\n4. Kontrol tekanan darah dan gula darah\n5. Lakukan pemeriksaan kesehatan rutin'
+            }
+        };
+        return info[category] || info.Normal;
+    }
+}
 
 /**
  * @method GET
@@ -157,7 +156,6 @@ const getAllPatients = async (req, res) => {
         // Cari semua pasien untuk healthcare provider ini
         const patients = await Patient.findAll({
             where: { NIP },
-
             order: [['createdAt', 'DESC']]
         });
 
@@ -176,25 +174,27 @@ const getAllPatients = async (req, res) => {
 const getPatientDetail = async (req, res) => {
     try {
         const { id } = req.params;
+        const NIP = req.user.NIP;
 
-        // Cari pasien berdasarkan ID
-        const patient = await Patient.findByPk(id, {
+        // Cari pasien berdasarkan ID dan NIP untuk memastikan hanya pasien dari provider yang bersangkutan
+        const patient = await Patient.findOne({
+            where: {
+                id: id,
+                NIP: NIP
+            },
             include: [
                 {
                     model: Examination,
                     as: 'pemeriksaans',
-                    order: [['createdAt', 'DESC']]
                 }
+            ],
+            order: [
+                [{ model: Examination, as: 'pemeriksaans' }, 'createdAt', 'DESC']
             ]
         });
 
         if (!patient) {
-            return res.status(404).json({ error: 'Pasien tidak ditemukan' });
-        }
-
-        // Verifikasi pasien milik healthcare provider yang login
-        if (patient.NIP !== req.user.NIP) {
-            return res.status(403).json({ error: 'Tidak memiliki akses ke data pasien ini' });
+            return res.status(404).json({ error: 'Pasien tidak ditemukan atau Anda tidak memiliki akses' });
         }
 
         res.json(patient);
@@ -233,7 +233,6 @@ const getAllExaminations = async (req, res) => {
     }
 };
 
-
 /**
  * @method GET
  * @route /patients/examinations/:id
@@ -269,7 +268,7 @@ const getExaminationDetail = async (req, res) => {
 };
 
 module.exports = {
-    addPatientAndExamination,
+    PredictionController,
     getAllPredictions,
     getAllPatients,
     getPatientDetail,

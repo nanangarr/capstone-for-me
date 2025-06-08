@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middlewares/authMiddleware');
 const {
-    addPatientAndExamination,
+    //addPatientAndExamination,
+    PredictionController,
     getAllPredictions,
     getAllPatients,
     getPatientDetail,
@@ -13,7 +14,8 @@ const upload = require('../middlewares/uploadMiddleware');
 
 router.use(authenticate);
 
-router.post('/add', upload.single('gambar_MRI'), addPatientAndExamination);
+//router.post('/add', upload.single('gambar_MRI'), addPatientAndExamination);
+router.post('/predict', upload.single('gambar_MRI'), PredictionController.predictStroke);
 router.get('/predictions', getAllPredictions);
 router.get('/', getAllPatients);
 router.get('/:id', getPatientDetail);

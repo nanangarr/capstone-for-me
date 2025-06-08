@@ -14,7 +14,6 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        // Generate nama file unik
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
         cb(null, 'mri-' + uniqueSuffix + ext);
@@ -23,7 +22,6 @@ const storage = multer.diskStorage({
 
 // Cek tipe file
 const fileFilter = (req, file, cb) => {
-    // Hanya menerima file gambar
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     if (allowedTypes.includes(file.mimetype)) {
