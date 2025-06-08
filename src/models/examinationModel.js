@@ -20,6 +20,10 @@ const Examination = db.define('pemeriksaan', {
         type: DataTypes.BOOLEAN,
         allowNull: false
     },
+    berat_badan: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
     penyakit_jantung: {
         type: DataTypes.BOOLEAN,
         allowNull: false

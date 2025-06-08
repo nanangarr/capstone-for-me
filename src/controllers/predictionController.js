@@ -17,6 +17,7 @@ const addPatientAndExamination = async (req, res) => {
             tanggal_periksa,
             umur,
             hipertensi,
+            berat_badan,
             penyakit_jantung,
             menikah,
             pekerjaan,
@@ -33,14 +34,14 @@ const addPatientAndExamination = async (req, res) => {
         const gambar_MRI = req.file ? req.file.path.replace(/\\/g, '/') : null;
 
         // Validasi field yang dibutuhkan
-        if (!nama || !jenis_kelamin || !alamat || !tanggal_lahir || !umur || !hipertensi || !penyakit_jantung || !menikah || !pekerjaan || !tempat_tinggal || !glukosa || !merokok || !stroke ) {
+        if (!nama || !jenis_kelamin || !alamat || !tanggal_lahir || !umur || !hipertensi || !penyakit_jantung || !menikah || !pekerjaan || !tempat_tinggal || !glukosa || !merokok || !stroke || !berat_badan) {
             // Hapus file yang terupload jika validasi gagal
             if (gambar_MRI && fs.existsSync(gambar_MRI)) {
                 fs.unlinkSync(gambar_MRI);
             }
 
             return res.status(400).json({
-                error: 'Semua field wajib diisi (nama, jenis kelamin, alamat, tanggal lahir, umur, hipertensi, penyakit jantung, menikah, pekerjaan, tempat tinggal, glukosa, merokok, stroke)'
+                error: 'Semua field wajib diisi (nama, jenis kelamin, alamat, tanggal lahir, umur, hipertensi, penyakit jantung, menikah, pekerjaan, tempat tinggal, glukosa, merokok, stroke, berat badan)'
             });
         }
 
@@ -64,6 +65,7 @@ const addPatientAndExamination = async (req, res) => {
             tanggal_periksa: tanggal_periksa || new Date(),
             umur: parseInt(umur),
             hipertensi: hipertensi === 'true' || hipertensi === '1' || hipertensi === true || hipertensi === 1,
+            berat_badan: parseFloat(berat_badan),
             penyakit_jantung: penyakit_jantung === 'true' || penyakit_jantung === '1' || penyakit_jantung === true || penyakit_jantung === 1,
             menikah: (menikah === 'true' || menikah === '1' || menikah === true || menikah === 1) ? 'Ya' : 'Tidak',
             pekerjaan,
@@ -92,6 +94,7 @@ const addPatientAndExamination = async (req, res) => {
                 tanggal_periksa: examination.tanggal_periksa,
                 umur: examination.umur,
                 hipertensi: examination.hipertensi,
+                berat_badan: examination.berat_badan,
                 penyakit_jantung: examination.penyakit_jantung,
                 menikah: examination.menikah,
                 pekerjaan: examination.pekerjaan,
