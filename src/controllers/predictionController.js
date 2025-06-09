@@ -11,62 +11,52 @@ const fs = require('fs');
 class PredictionController {
     static async predictStroke(req, res) {
         try {
-            //Simpan data pasien baru
+            // Simpan data pasien
             const patient = await Patient.create({
                 nama: req.body.nama,
                 tempat_lahir: req.body.tempat_lahir,
                 tanggal_lahir: req.body.tanggal_lahir,
                 no_hp: req.body.no_hp,
-                NIP: req.user.NIP 
+                NIP: req.user.NIP
             });
 
-            //Simpan data pemeriksaan baru
+            // Simpan data pemeriksaan
             const examination = await Examination.create({
                 pasien_id: patient.id,
                 jenis_kelamin: req.body.jenis_kelamin,
                 berat_badan: req.body.berat_badan,
                 tinggi_badan: req.body.tinggi_badan,
                 umur: req.body.umur,
-                hipertensi: req.body.hipertensi === 'true' || req.body.hipertensi === true,
-                penyakit_jantung: req.body.penyakit_jantung === 'true' || req.body.penyakit_jantung === true,
+                hipertensi: req.body.hipertensi === 'true',
+                penyakit_jantung: req.body.penyakit_jantung === 'true',
                 status_nikah: req.body.status_nikah,
                 pekerjaan: req.body.pekerjaan,
                 tempat_tinggal: req.body.tempat_tinggal,
                 glukosa: req.body.glukosa,
                 merokok: req.body.merokok,
-                stroke: req.body.stroke === 'true' || req.body.stroke === true,
+                stroke: req.body.stroke === 'true',
                 gambar_MRI: req.file.filename
             });
 
-            //Siapkan data input untuk prediksi
-            const inputData = {
-                mriPath: path.join(__dirname, '../../uploads/', req.file.filename),
-                jenis_kelamin: req.body.jenis_kelamin,
-                umur: req.body.umur,
-                hipertensi: req.body.hipertensi === 'true' || req.body.hipertensi === true,
-                penyakit_jantung: req.body.penyakit_jantung === 'true' || req.body.penyakit_jantung === true,
-                status_nikah: req.body.status_nikah,
-                pekerjaan: req.body.pekerjaan,
-                tempat_tinggal: req.body.tempat_tinggal,
-                glukosa: req.body.glukosa,
-                berat_badan: req.body.berat_badan,
-                tinggi_badan: req.body.tinggi_badan,
-                merokok: req.body.merokok
-            };
+            const mriPath = path.join(__dirname, '../../uploads/', req.file.filename);
+            const result = await ModelLoader.predict({ mriPath });
+            const maxConfidence = Math.max(...result);
+            if (maxConfidence < 0.6) {
+                return res.status(200).json({
+                    success: true,
+                    warning: true,
+                    message: 'Gambar tidak meyakinkan atau bukan MRI yang valid',
+                    confidence: (maxConfidence * 100).toFixed(2) + '%'
+                });
+            }
 
-            //Lakukan prediksi menggunakan model
-            const predictions = await ModelLoader.predict(inputData);
-            const result = await predictions.data();
-
-            //Tentukan kategori stroke berdasarkan hasil prediksi
-            const strokeCategories = ['Ischemic', 'Normal', 'Haemorrhagic'];
-            const predictedCategoryIndex = result.indexOf(Math.max(...result));
+            // Mapping kategori
+            const strokeCategories = ['Haemorrhagic', 'Ischemic', 'Normal'];
+            const predictedCategoryIndex = result.indexOf(maxConfidence);
             const predictedCategory = strokeCategories[predictedCategoryIndex];
 
-            // Dapatkan informasi deskripsi dan solusi berdasarkan kategori yang diprediksi
             const { description, solution } = PredictionController.getStrokeInfo(predictedCategory);
 
-            // Update pemeriksaan dengan kategori, deskripsi, dan solusi
             await examination.update({
                 kategori: predictedCategory,
                 deskripsi: description,
@@ -88,8 +78,7 @@ class PredictionController {
             console.error('Prediction error:', error);
             res.status(500).json({
                 success: false,
-                error: error.message,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                error: error.message
             });
         }
     }
@@ -97,16 +86,16 @@ class PredictionController {
     static getStrokeInfo(category) {
         const info = {
             Ischemic: {
-                description: 'Stroke iskemik terjadi ketika pembuluh darah yang memasok darah ke otak tersumbat oleh gumpalan darah. Ini adalah jenis stroke yang paling umum, menyumbang sekitar 87% dari semua kasus stroke.',
-                solution: '1. Pemberian obat trombolitik dalam 4,5 jam pertama\n2. Terapi antiplatelet atau antikoagulan\n3. Rehabilitasi pasca stroke\n4. Pengendalian faktor risiko seperti hipertensi dan diabetes'
+                description: 'Stroke iskemik terjadi ketika pembuluh darah ke otak tersumbat.',
+                solution: '1. Obat trombolitik\n2. Antiplatelet\n3. Rehabilitasi\n4. Kontrol risiko'
             },
             Haemorrhagic: {
-                description: 'Stroke hemoragik terjadi ketika pembuluh darah di otak pecah dan menyebabkan perdarahan di dalam atau di sekitar otak. Jenis stroke ini lebih jarang tetapi lebih berpotensi fatal.',
-                solution: '1. Stabilisasi tekanan darah\n2. Pembedahan untuk menghentikan perdarahan\n3. Pengelolaan tekanan intrakranial\n4. Rehabilitasi intensif\n5. Pemantauan neurologis ketat'
+                description: 'Stroke hemoragik terjadi karena pecahnya pembuluh darah di otak.',
+                solution: '1. Stabil tekanan darah\n2. Pembedahan\n3. Rehabilitasi intensif'
             },
             Normal: {
-                description: 'Tidak terdeteksi tanda-tanda stroke pada gambar MRI. Hasil pemeriksaan menunjukkan kondisi otak dalam batas normal.',
-                solution: '1. Pertahankan pola makan sehat\n2. Olahraga teratur\n3. Hindari merokok dan alkohol berlebihan\n4. Kontrol tekanan darah dan gula darah\n5. Lakukan pemeriksaan kesehatan rutin'
+                description: 'Tidak terdeteksi tanda stroke pada gambar MRI.',
+                solution: '1. Gaya hidup sehat\n2. Olahraga\n3. Rutin cek kesehatan'
             }
         };
         return info[category] || info.Normal;
