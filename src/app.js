@@ -8,7 +8,13 @@ const db = require('./config/db');
 const models = require('./models/index');
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ 
+    origin: [
+        'http://localhost:3000',
+        'https://capstone-for-me-production-e843.up.railway.app'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
