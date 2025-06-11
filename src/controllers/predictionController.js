@@ -86,16 +86,16 @@ class PredictionController {
     static getStrokeInfo(category) {
         const info = {
             Ischemic: {
-                description: 'Stroke iskemik terjadi ketika pembuluh darah ke otak tersumbat.',
-                solution: '1. Obat trombolitik\n2. Antiplatelet\n3. Rehabilitasi\n4. Kontrol risiko'
+                description: 'Stroke iskemik terjadi akibat sumbatan pada pembuluh darah otak, yang mengakibatkan kekurangan pasokan oksigen pada jaringan otak. Ini biasanya disebabkan oleh pembekuan darah atau penyempitan pembuluh darah yang mengurangi aliran darah ke bagian otak tertentu.',
+                solution: '1. Prosedur medis untuk melarutkan bekuan darah yang menyumbat pembuluh darah otak (Trombolisis).\n2. Prosedur untuk mengangkat bekuan darah yang menghalangi aliran darah ke otak (Trombektomi).\n3. Pencegahan Sekunder: Langkah-langkah untuk mencegah stroke berulang, termasuk penggunaan obat-obatan dan perubahan gaya hidup.'
             },
             Haemorrhagic: {
-                description: 'Stroke hemoragik terjadi karena pecahnya pembuluh darah di otak.',
-                solution: '1. Stabil tekanan darah\n2. Pembedahan\n3. Rehabilitasi intensif'
+                description: 'Stroke hemoragik terjadi ketika pembuluh darah di otak pecah, menyebabkan perdarahan ke dalam jaringan otak. Ini bisa terjadi akibat aneurisma yang pecah, tekanan darah tinggi yang tidak terkontrol, atau kelainan pembuluh darah lainnya.',
+                solution: '1. Kontrol Perdarahan Penghentian perdarahan dengan menggunakan obat-obatan.\n2. Pengelolaan tekanan dalam tengkorak untuk mencegah kerusakan lebih lanjut pada otak.\n3. Intervensi Bedah: Tindakan bedah diperlukan untuk mengangkat darah atau memperbaiki pembuluh darah yang pecah.\n4. Kontrol Hipertensi Pengelolaan tekanan darah tinggi untuk mencegah perdarahan lebih lanjut atau stroke berulang.'
             },
             Normal: {
-                description: 'Tidak terdeteksi tanda stroke pada gambar MRI.',
-                solution: '1. Gaya hidup sehat\n2. Olahraga\n3. Rutin cek kesehatan'
+                description: 'Tidak terjadi gangguan pada aliran darah atau perdarahan di otak. Pasien dalam kondisi ini tidak mengalami stroke, tetapi mungkin memiliki faktor risiko yang perlu diwaspadai.',
+                solution: '1. Melakukan pencegahan stroke dengan gaya hidup sehat dan pengawasan faktor risiko, \n2. Monitoring Rutin, Pemeriksaan kesehatan secara berkala untuk mendeteksi masalah kesehatan lebih awal dan mengontrol faktor risiko yang ada.'
             }
         };
         return info[category] || info.Normal;
