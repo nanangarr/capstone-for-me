@@ -11,7 +11,8 @@ const models = require('./models/index');
 app.use(cors({ 
     origin: [
         'http://localhost:3000',
-        'https://capstone-for-me-production-e843.up.railway.app'
+        'https://capstone-for-me-production-e843.up.railway.app',
+        'https://capstone-for-me-production-9af6.up.railway.app'
     ],
     credentials: true
 }));
