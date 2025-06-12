@@ -125,142 +125,159 @@ const getAllPredictions = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        res.json(patients);
-    } catch (error) {
-        console.error('Error in getAllPatients:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
+        // Add image URLs to each examination
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const patientsWithImageUrls = patients.map(patient => {
+            const plainPatient = patient.get({ plain: true });
 
-/**
- * @method GET
- * @route /patients
- * @desc Dapatkan semua data pasien dengan pemeriksaan terbaru mereka
- */
-const getAllPatients = async (req, res) => {
-    try {
-        // Dapatkan NIP dari user yang terautentikasi
-        const NIP = req.user.NIP;
+            // Add image URLs to each examination for this patient
+            if (plainPatient.pemeriksaans && plainPatient.pemeriksaans.length > 0) {
+                plainPatient.pemeriksaans = plainPatient.pemeriksaans.map(exam => {
+                    if (exam.gambar_MRI) {
+                        exam.gambar_MRI_url = `${baseUrl}/uploads/${exam.gambar_MRI}`;
+                    }
+                    return exam;
+                });
+            }
 
-        // Cari semua pasien untuk healthcare provider ini
-        const patients = await Patient.findAll({
-            where: { NIP },
-            order: [['createdAt', 'DESC']]
+            return plainPatient;
         });
 
-        res.json(patients);
+        res.json(patientsWithImageUrls);
     } catch (error) {
-        console.error('Error in getAllPatients:', error);
+        console.error('Error in getAllPredictions:', error);
         res.status(500).json({ error: error.message });
     }
 };
 
-/**
- * @method GET
- * @route /patients/:id
- * @desc Dapatkan detail pasien dengan semua pemeriksaan
- */
-const getPatientDetail = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const NIP = req.user.NIP;
+// /**
+//  * @method GET
+//  * @route /patients
+//  * @desc Dapatkan semua data pasien dengan pemeriksaan terbaru mereka
+//  */
+// const getAllPatients = async (req, res) => {
+//     try {
+//         // Dapatkan NIP dari user yang terautentikasi
+//         const NIP = req.user.NIP;
 
-        // Cari pasien berdasarkan ID dan NIP untuk memastikan hanya pasien dari provider yang bersangkutan
-        const patient = await Patient.findOne({
-            where: {
-                id: id,
-                NIP: NIP
-            },
-            include: [
-                {
-                    model: Examination,
-                    as: 'pemeriksaans',
-                }
-            ],
-            order: [
-                [{ model: Examination, as: 'pemeriksaans' }, 'createdAt', 'DESC']
-            ]
-        });
+//         // Cari semua pasien untuk healthcare provider ini
+//         const patients = await Patient.findAll({
+//             where: { NIP },
+//             order: [['createdAt', 'DESC']]
+//         });
 
-        if (!patient) {
-            return res.status(404).json({ error: 'Pasien tidak ditemukan atau Anda tidak memiliki akses' });
-        }
+//         res.json(patients);
+//     } catch (error) {
+//         console.error('Error in getAllPatients:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 
-        res.json(patient);
-    } catch (error) {
-        console.error('Error in getPatientDetail:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
+// /**
+//  * @method GET
+//  * @route /patients/:id
+//  * @desc Dapatkan detail pasien dengan semua pemeriksaan
+//  */
+// const getPatientDetail = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const NIP = req.user.NIP;
 
-/**
- * @method GET
- * @route /patients/examinations/
- * @desc Dapatkan semua data pemeriksaan pasien
- */
-const getAllExaminations = async (req, res) => {
-    try {
-        // Dapatkan NIP dari user yang terautentikasi
-        const NIP = req.user.NIP;
+//         // Cari pasien berdasarkan ID dan NIP untuk memastikan hanya pasien dari provider yang bersangkutan
+//         const patient = await Patient.findOne({
+//             where: {
+//                 id: id,
+//                 NIP: NIP
+//             },
+//             include: [
+//                 {
+//                     model: Examination,
+//                     as: 'pemeriksaans',
+//                 }
+//             ],
+//             order: [
+//                 [{ model: Examination, as: 'pemeriksaans' }, 'createdAt', 'DESC']
+//             ]
+//         });
 
-        // Cari semua pemeriksaan untuk healthcare provider ini
-        const examinations = await Examination.findAll({
-            include: [
-                {
-                    model: Patient,
-                    as: 'pasiens',
-                    where: { NIP }
-                }
-            ],
-            order: [['createdAt', 'DESC']]
-        });
+//         if (!patient) {
+//             return res.status(404).json({ error: 'Pasien tidak ditemukan atau Anda tidak memiliki akses' });
+//         }
 
-        res.json(examinations);
-    } catch (error) {
-        console.error('Error in getAllExaminations:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
+//         res.json(patient);
+//     } catch (error) {
+//         console.error('Error in getPatientDetail:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 
-/**
- * @method GET
- * @route /patients/examinations/:id
- * @desc Dapatkan detail pemeriksaan berdasarkan ID
- */
-const getExaminationDetail = async (req, res) => {
-    try {
-        const { id } = req.params;
+// /**
+//  * @method GET
+//  * @route /patients/examinations/
+//  * @desc Dapatkan semua data pemeriksaan pasien
+//  */
+// const getAllExaminations = async (req, res) => {
+//     try {
+//         // Temporarily get all examinations without NIP filtering for testing
+//         const examinations = await Examination.findAll({
+//             include: [
+//                 {
+//                     model: Patient,
+//                     as: 'pasiens'
+//                 }
+//             ],
+//             order: [['createdAt', 'DESC']]
+//         });
 
-        const examination = await Examination.findByPk(id, {
-            include: [
-                {
-                    model: Patient,
-                    as: 'pasiens'
-                }
-            ]
-        });
+//         console.log('All examinations count:', examinations.length);
 
-        if (!examination) {
-            return res.status(404).json({ error: 'Pemeriksaan tidak ditemukan' });
-        }
+//         // Just for debugging - don't use in production
+//         res.json(examinations);
+//     } catch (error) {
+//         console.error('Error in getAllExaminations:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 
-        // Verifikasi pasien milik healthcare provider yang login
-        if (examination.pasiens.NIP !== req.user.NIP) {
-            return res.status(403).json({ error: 'Tidak memiliki akses ke data ini' });
-        }
+// /**
+//  * @method GET
+//  * @route /patients/examinations/:id
+//  * @desc Dapatkan detail pemeriksaan berdasarkan ID
+//  */
+// const getExaminationDetail = async (req, res) => {
+//     try {
+//         const { id } = req.params;
 
-        res.json(examination);
-    } catch (error) {
-        console.error('Error in getExaminationDetail:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
+//         const examination = await Examination.findByPk(id, {
+//             include: [
+//                 {
+//                     model: Patient,
+//                     as: 'pasiens'
+//                 }
+//             ]
+//         });
+
+//         if (!examination) {
+//             return res.status(404).json({ error: 'Pemeriksaan tidak ditemukan' });
+//         }
+
+//         // Verifikasi pasien milik healthcare provider yang login
+//         if (examination.pasiens.NIP !== req.user.NIP) {
+//             return res.status(403).json({ error: 'Tidak memiliki akses ke data ini' });
+//         }
+
+//         res.json(examination);
+//     } catch (error) {
+//         console.error('Error in getExaminationDetail:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 
 module.exports = {
     PredictionController,
     getAllPredictions,
-    getAllPatients,
-    getPatientDetail,
-    getAllExaminations,
-    getExaminationDetail
+    // getAllPatients,
+    // getPatientDetail,
+    // getAllExaminations,
+    // getExaminationDetail
 };
